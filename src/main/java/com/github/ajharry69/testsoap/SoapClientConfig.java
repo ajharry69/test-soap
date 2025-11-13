@@ -1,6 +1,7 @@
 package com.github.ajharry69.testsoap;
 
 import jakarta.xml.soap.MessageFactory;
+import jakarta.xml.soap.SOAPConstants;
 import jakarta.xml.soap.SOAPException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,16 +26,11 @@ class SoapClientConfig {
     }
 
     @Bean
-    public SaajSoapMessageFactory messageFactory() {
-        try {
-            SaajSoapMessageFactory messageFactory = new SaajSoapMessageFactory();
-            messageFactory.setMessageFactory(MessageFactory.newInstance());
-            messageFactory.afterPropertiesSet();
-//            messageFactory.setSoapVersion(SoapVersion.SOAP_12);
-            return messageFactory;
-        } catch (SOAPException e) {
-            throw new RuntimeException("Failed to create SOAP MessageFactory", e);
-        }
+    public SaajSoapMessageFactory messageFactory() throws SOAPException {
+        SaajSoapMessageFactory messageFactory = new SaajSoapMessageFactory();
+        messageFactory.setMessageFactory(MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL));
+        messageFactory.afterPropertiesSet();
+        return messageFactory;
     }
 
     @Bean
