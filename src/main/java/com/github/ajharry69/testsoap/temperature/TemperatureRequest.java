@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.ws.client.core.WebServiceTemplate;
 import org.springframework.ws.soap.client.SoapFaultClientException;
@@ -31,8 +32,8 @@ class TemperatureRequest {
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "FahrenheitToCelsiusResponse", namespace = "https://www.w3schools.com/xml/")
 class TemperatureResponse {
-    @XmlElement(name = "FahrenheitToCelsiusResult")
-    private Double degreesCelsius;
+    @XmlElement(name = "FahrenheitToCelsiusResult", namespace = "https://www.w3schools.com/xml/")
+    private String degreesCelsius;
 }
 
 interface TemperatureSoapClient {
@@ -65,9 +66,7 @@ class TemperatureSoapClientImpl implements TemperatureSoapClient {
 class TemperatureService {
     private final TemperatureSoapClient client;
 
-    public List<TemperatureResponse> get() {
-        var request = new TemperatureRequest();
-        request.setFahrenheitReading("32");
+    public List<TemperatureResponse> get(TemperatureRequest request) {
         return List.of(client.getTemperature(request));
     }
 }
@@ -79,7 +78,9 @@ class TemperatureController {
     private final TemperatureService service;
 
     @GetMapping
-    public ResponseEntity<List<TemperatureResponse>> get() {
-        return ResponseEntity.ok(service.get());
+    public ResponseEntity<List<TemperatureResponse>> get(@RequestParam String fahrenheitReading) {
+        var request = new TemperatureRequest();
+        request.setFahrenheitReading(fahrenheitReading);
+        return ResponseEntity.ok(service.get(request));
     }
 }
