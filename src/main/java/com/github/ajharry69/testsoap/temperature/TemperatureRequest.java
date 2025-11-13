@@ -5,34 +5,34 @@ import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.ws.client.core.WebServiceTemplate;
+import org.springframework.ws.soap.client.SoapFaultClientException;
 
 import java.util.List;
 
-@Builder
-record TemperatureRequest(String name, String code) {
+@Data
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlRootElement(name = "FahrenheitToCelsius", namespace = "https://www.w3schools.com/xml/")
+class TemperatureRequest {
+    @XmlElement(name = "Fahrenheit", namespace = "https://www.w3schools.com/xml/")
+    private String fahrenheitReading;
 }
 
 @Data
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "response", namespace = "http://api-v1.gen.mm.vodafone.com/mminterface/response")
+@XmlRootElement(name = "FahrenheitToCelsiusResponse", namespace = "https://www.w3schools.com/xml/")
 class TemperatureResponse {
-    @XmlElement(name = "ResponseCode")
-    private String name;
-
-    @XmlElement(name = "ConversationID")
-    private String code;
+    @XmlElement(name = "FahrenheitToCelsiusResult")
+    private Double degreesCelsius;
 }
 
 interface TemperatureSoapClient {
@@ -44,11 +44,18 @@ interface TemperatureSoapClient {
 @RequiredArgsConstructor
 class TemperatureSoapClientImpl implements TemperatureSoapClient {
     private final WebServiceTemplate webServiceTemplate;
-    private final Jaxb2Marshaller jaxbMarshaller;
 
     @Override
     public TemperatureResponse getTemperature(TemperatureRequest request) {
-        return null;
+        try {
+            return (TemperatureResponse) webServiceTemplate.marshalSendAndReceive(
+                    "https://www.w3schools.com/xml/tempconvert.asmx",
+                    request
+            );
+        } catch (SoapFaultClientException e) {
+            log.error("Error converting temperature", e);
+            return new TemperatureResponse();
+        }
     }
 }
 
@@ -59,8 +66,8 @@ class TemperatureService {
     private final TemperatureSoapClient client;
 
     public List<TemperatureResponse> get() {
-        var request = TemperatureRequest.builder()
-                .build();
+        var request = new TemperatureRequest();
+        request.setFahrenheitReading("32");
         return List.of(client.getTemperature(request));
     }
 }
