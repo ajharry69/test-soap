@@ -10,7 +10,9 @@ import java.util.stream.Stream;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
-    Stream<Transaction> findByStatusInOrderByDateUpdatedAsc(@NonNull Collection<Transaction.Status> statuses);
+    Stream<Transaction> findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(
+            int retriesCount,
+            @NonNull Collection<Transaction.Status> statuses);
 
     long countByStatusIn(@NonNull Collection<Transaction.Status> statuses);
 }

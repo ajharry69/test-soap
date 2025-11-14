@@ -44,6 +44,7 @@ public class Transaction {
     private OffsetDateTime dateUpdated;
     private Double fahrenheit;
     private Double celsius;
+    private int retriesCount = 0;
 
     public enum Status {
         PENDING,

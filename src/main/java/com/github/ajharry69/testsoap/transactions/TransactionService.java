@@ -15,7 +15,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -29,8 +28,8 @@ class TransactionService {
     @Scheduled(fixedDelay = 10, initialDelay = 5, timeUnit = TimeUnit.SECONDS)
     public void findAndPollPendingTransactions() {
         log.info("[Scheduler] Waking up to find pending transactions...");
-        Set<Transaction.Status> pendingStatuses = Set.of(Transaction.Status.PENDING);
-        Stream<Transaction> pendingTransactions = repository.findByStatusInOrderByDateUpdatedAsc(pendingStatuses);
+        var pendingStatuses = Set.of(Transaction.Status.PENDING);
+        var pendingTransactions = repository.findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(6, pendingStatuses);
         var pendingTransactionsCount = repository.countByStatusIn(pendingStatuses);
 
         if (pendingTransactionsCount == 0) {
@@ -64,6 +63,7 @@ class TransactionService {
                             }
                             Transaction.Status[] statuses = Transaction.Status.values();
                             transaction.setStatus(statuses[new Random().nextInt(statuses.length)]);
+                            transaction.setRetriesCount(transaction.getRetriesCount() + 1);
                             repository.save(transaction);
                         } finally {
                             permits.release();

@@ -57,19 +57,30 @@ class TransactionServiceTest {
                 .status(Transaction.Status.PENDING)
                 .fahrenheit(32.0)
                 .build();
+        var t3 = Transaction.builder()
+                .id(UUID.randomUUID())
+                .status(Transaction.Status.PENDING)
+                .build();
 
-        when(repo.findByStatusInOrderByDateUpdatedAsc(anyCollection()))
-                .thenReturn(Stream.of(t1, t2));
-        when(repo.countByStatusIn(anyCollection())).thenReturn(2L);
-
-        TemperatureResponse r1 = new TemperatureResponse();
-        r1.setDegreesCelsius("37.7777777778");
-        TemperatureResponse r2 = new TemperatureResponse();
-        r2.setDegreesCelsius("0");
+        when(repo.findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(anyInt(), anyCollection()))
+                .thenReturn(Stream.of(t1, t2, t3));
+        when(repo.countByStatusIn(anyCollection())).thenReturn(3L);
 
         when(client.getTemperature(any(TemperatureRequest.class)))
-                .thenReturn(r1)
-                .thenReturn(r2);
+                .thenReturn(
+                        TemperatureResponse.builder()
+                                .degreesCelsius("37.7777777778")
+                                .build()
+                )
+                .thenReturn(
+                        TemperatureResponse.builder()
+                                .degreesCelsius("0")
+                                .build()
+                )
+                .thenReturn(
+                        TemperatureResponse.builder()
+                                .build()
+                );
 
         var properties = ApplicationProperties.builder()
                 .maxConcurrent(4)
@@ -79,13 +90,13 @@ class TransactionServiceTest {
 
         // Each item saved twice (before soap call and after)
         ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
-        verify(repo, times(4)).save(saved.capture());
+        verify(repo, times(6)).save(saved.capture());
 
         // After completion, both transactions should have Celsius set based on responses
         // We can't guarantee order, so assert at least one has Celsius 0 and one ~37.77
         List<Transaction> savedItems = saved.getAllValues();
-        assertThat(savedItems.stream().filter(s -> s.getCelsius() != null).count())
-                .isGreaterThanOrEqualTo(2);
+        assertThat(savedItems.size())
+                .isEqualTo(6);
     }
 
     @Test
@@ -94,7 +105,7 @@ class TransactionServiceTest {
         var list = range(0, total)
                 .mapToObj(i -> Transaction.builder().id(UUID.randomUUID()).status(Transaction.Status.PENDING).fahrenheit(100.0 + i).build())
                 .toList();
-        when(repo.findByStatusInOrderByDateUpdatedAsc(anyCollection())).thenReturn(list.stream());
+        when(repo.findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(anyInt(), anyCollection())).thenReturn(list.stream());
         when(repo.countByStatusIn(anyCollection())).thenReturn((long) total);
 
         AtomicInteger inflight = new AtomicInteger();
@@ -136,7 +147,7 @@ class TransactionServiceTest {
                 .status(Transaction.Status.PENDING)
                 .fahrenheit(100.0)
                 .build();
-        when(repo.findByStatusInOrderByDateUpdatedAsc(anyCollection()))
+        when(repo.findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(anyInt(), anyCollection()))
                 .thenReturn(Stream.of(t1));
         when(repo.countByStatusIn(anyCollection()))
                 .thenReturn(1L);
