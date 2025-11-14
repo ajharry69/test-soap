@@ -1,13 +1,9 @@
 package com.github.ajharry69.testsoap;
 
-import jakarta.xml.soap.MessageFactory;
-import jakarta.xml.soap.SOAPConstants;
-import jakarta.xml.soap.SOAPException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.ws.client.core.WebServiceTemplate;
-import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
 import org.springframework.ws.transport.http.HttpComponents5MessageSender;
 
 import java.time.Duration;
@@ -26,16 +22,8 @@ class SoapClientConfig {
     }
 
     @Bean
-    public SaajSoapMessageFactory messageFactory() throws SOAPException {
-        SaajSoapMessageFactory messageFactory = new SaajSoapMessageFactory();
-        messageFactory.setMessageFactory(MessageFactory.newInstance(SOAPConstants.SOAP_1_2_PROTOCOL));
-        messageFactory.afterPropertiesSet();
-        return messageFactory;
-    }
-
-    @Bean
-    public WebServiceTemplate webServiceTemplate(SaajSoapMessageFactory messageFactory, Jaxb2Marshaller marshaller, HttpComponents5MessageSender messageSender) {
-        var template = new WebServiceTemplate(messageFactory);
+    public WebServiceTemplate webServiceTemplate(Jaxb2Marshaller marshaller, HttpComponents5MessageSender messageSender) {
+        var template = new WebServiceTemplate();
         template.setMarshaller(marshaller);
         template.setUnmarshaller(marshaller);
 
