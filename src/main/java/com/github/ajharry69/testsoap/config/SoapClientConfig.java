@@ -1,4 +1,4 @@
-package com.github.ajharry69.testsoap;
+package com.github.ajharry69.testsoap.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
