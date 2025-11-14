@@ -1,5 +1,6 @@
 package com.github.ajharry69.testsoap.transactions;
 
+import com.github.ajharry69.testsoap.ApplicationProperties;
 import com.github.ajharry69.testsoap.temperature.TemperatureRequest;
 import com.github.ajharry69.testsoap.temperature.TemperatureSoapClient;
 import lombok.AllArgsConstructor;
@@ -10,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -19,6 +23,7 @@ import java.util.stream.Stream;
 class TransactionService {
     private final TransactionRepository repository;
     private final TemperatureSoapClient soapClient;
+    private final ApplicationProperties properties;
 
     @Transactional(readOnly = true)
     @Scheduled(fixedDelay = 10, initialDelay = 5, timeUnit = TimeUnit.SECONDS)
@@ -33,32 +38,38 @@ class TransactionService {
             return;
         }
 
-        log.info("[Scheduler] Found {} pending transactions. Polling all in parallel...", pendingTransactionsCount);
+        log.info("[Scheduler] Found {} pending transactions. Processing...", pendingTransactionsCount);
 
-        pendingTransactions.parallel().forEach(transaction -> {
-            var f = transaction.getFahrenheit();
-            if (f == null) {
-                f = new Random().nextDouble(40, 1000);
-            }
-            var temperatureRequest = TemperatureRequest.builder()
-                    .fahrenheitReading(String.valueOf(f))
-                    .build();
+        var permits = new Semaphore(Math.max(1, properties.maxConcurrent()));
+        try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
+            pendingTransactions.map(transaction ->
+                    CompletableFuture.runAsync(() -> {
+                        permits.acquireUninterruptibly();
+                        try {
+                            var f = transaction.getFahrenheit();
+                            if (f == null) {
+                                f = new Random().nextDouble(40, 1000);
+                            }
+                            var temperatureRequest = TemperatureRequest.builder()
+                                    .fahrenheitReading(String.valueOf(f))
+                                    .build();
 
-            transaction.setFahrenheit(Double.parseDouble(temperatureRequest.getFahrenheitReading()));
-            repository.save(transaction);
+                            transaction.setFahrenheit(Double.parseDouble(temperatureRequest.getFahrenheitReading()));
+                            repository.save(transaction);
 
-            Thread thread = Thread.currentThread();
-            log.info("Thread={}, isVirtual={}, isDaemon={}", thread, thread.isVirtual(), thread.isDaemon());
-
-            Thread.startVirtualThread(() -> {
-                Thread t = Thread.currentThread();
-                log.info("Thread={}, isVirtual={}, isDaemon={}", t, t.isVirtual(), t.isDaemon());
-                var temperatureResponse = soapClient.getTemperature(temperatureRequest);
-                transaction.setCelsius(Double.parseDouble(temperatureResponse.getDegreesCelsius()));
-                Transaction.Status[] statuses = Transaction.Status.values();
-                transaction.setStatus(statuses[new Random().nextInt(statuses.length)]);
-                repository.save(transaction);
-            });
-        });
+                            var temperatureResponse = soapClient.getTemperature(temperatureRequest);
+                            var d = temperatureResponse.getDegreesCelsius();
+                            if (d != null) {
+                                transaction.setCelsius(Double.parseDouble(d));
+                            }
+                            Transaction.Status[] statuses = Transaction.Status.values();
+                            transaction.setStatus(statuses[new Random().nextInt(statuses.length)]);
+                            repository.save(transaction);
+                        } finally {
+                            permits.release();
+                        }
+                    }, exec)
+            ).forEach(CompletableFuture::join);
+        }
     }
 }
