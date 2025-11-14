@@ -3,18 +3,24 @@ package com.github.ajharry69.testsoap.countries;
 import jakarta.xml.bind.annotation.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.ws.client.core.WebServiceTemplate;
-import org.springframework.ws.soap.SoapMessage;
-import org.springframework.ws.soap.client.SoapFaultClientException;
+import org.springframework.web.client.RestTemplate;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.dom.DOMSource;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,6 +46,7 @@ class CountryResponse {
 @XmlRootElement(name = "ListOfCountryNamesByNameResponse", namespace = "http://www.oorsprong.org/websamples.countryinfo")
 class CountriesResponse {
     @XmlElementWrapper(name = "ListOfCountryNamesByNameResult", namespace = "http://www.oorsprong.org/websamples.countryinfo")
+    @XmlElement(name = "tCountryCodeAndName", namespace = "http://www.oorsprong.org/websamples.countryinfo")
     private List<CountryResponse> countries;
 }
 
@@ -49,25 +56,73 @@ interface CountrySoapClient {
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 class CountrySoapClientImpl implements CountrySoapClient {
-    private final WebServiceTemplate webServiceTemplate;
+    private final RestTemplate restTemplate;
+    private final Jaxb2Marshaller marshaller;
+
+    public CountrySoapClientImpl(RestTemplateBuilder builder, Jaxb2Marshaller marshaller) {
+        this.restTemplate = builder.build();
+        this.marshaller = marshaller;
+    }
 
     @Override
     public CountriesResponse getCountries(CountriesRequest request) {
         try {
-            return (CountriesResponse) webServiceTemplate.marshalSendAndReceive(
+            // Build SOAP 1.1 envelope
+            // language=XML
+            String envelope = """
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="https://soap-service-free.mock.beeceptor.com/CountryInfoService">
+                      <soap:Body>
+                        <tns:ListOfCountryNamesByName/>
+                      </soap:Body>
+                    </soap:Envelope>
+                    """;
+
+            var headers = new HttpHeaders();
+            headers.setContentType(MediaType.TEXT_XML);
+            headers.setAccept(List.of(MediaType.TEXT_XML, MediaType.APPLICATION_XML));
+            headers.add("SOAPAction", "https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso/ListOfCountryNamesByName");
+
+            HttpEntity<String> entity = new HttpEntity<>(envelope, headers);
+            var xml = restTemplate.postForObject(
                     "https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso",
-                    request,
-                    message -> ((SoapMessage) message)
-                            .setSoapAction("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso/ListOfCountryNamesByName")
+                    entity,
+                    String.class
             );
-        } catch (SoapFaultClientException e) {
-            log.error("Error converting temperature", e);
-            var response = new CountriesResponse();
-            response.setCountries(Collections.emptyList());
-            return response;
+
+            if (xml == null || xml.isBlank()) return getEmptyCountriesResponse();
+
+            // Parse and extract the payload element
+            var dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
+            var doc = dbf.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+
+            // var body = doc.getDocumentElement(); // not used
+            // Find the response element: {http://www.oorsprong.org/websamples.countryinfo}ListOfCountryNamesByNameResponse
+            var nl = doc.getElementsByTagNameNS("http://www.oorsprong.org/websamples.countryinfo", "ListOfCountryNamesByNameResponse");
+            if (nl.getLength() == 0) return getEmptyCountriesResponse();
+
+            var responseEl = nl.item(0);
+            var source = new DOMSource(responseEl);
+            if (marshaller.unmarshal(source) instanceof CountriesResponse cr) {
+                // Lombok @Data ensures non-null list only if set; ensure not null
+                if (cr.getCountries() == null) {
+                    cr.setCountries(Collections.emptyList());
+                }
+                return cr;
+            }
+            return getEmptyCountriesResponse();
+        } catch (Exception e) {
+            log.error("Error fetching countries", e);
+            return getEmptyCountriesResponse();
         }
+    }
+
+    private static CountriesResponse getEmptyCountriesResponse() {
+        var r = new CountriesResponse();
+        r.setCountries(Collections.emptyList());
+        return r;
     }
 }
 
