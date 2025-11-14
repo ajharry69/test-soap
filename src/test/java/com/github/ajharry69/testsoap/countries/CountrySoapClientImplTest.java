@@ -1,10 +1,9 @@
 package com.github.ajharry69.testsoap.countries;
 
+import com.github.ajharry69.testsoap.SoapClientConfig;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.oxm.jaxb.Jaxb2Marshaller;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,24 +14,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 class CountrySoapClientImplTest {
-
-    private static Jaxb2Marshaller marshaller() {
-        Jaxb2Marshaller m = new Jaxb2Marshaller();
-        m.setPackagesToScan("com.github.ajharry69.testsoap.countries");
-        try {
-            m.afterPropertiesSet();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return m;
-    }
-
     @Test
     void getCountries_success_maps_list() {
-        RestTemplateBuilder builder = Mockito.mock(RestTemplateBuilder.class);
-        RestTemplate rt = Mockito.mock(RestTemplate.class);
+        RestClient.Builder builder = Mockito.mock(RestClient.Builder.class);
+        RestClient rt = Mockito.mock(RestClient.class);
+        RestClient.RequestBodyUriSpec uriSpec = Mockito.mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.RequestBodySpec bodySpec = Mockito.mock(RestClient.RequestBodySpec.class);
+        RestClient.ResponseSpec responseSpec = Mockito.mock(RestClient.ResponseSpec.class);
         when(builder.build()).thenReturn(rt);
-        CountrySoapClientImpl client = new CountrySoapClientImpl(builder, marshaller());
+        var client = new CountrySoapClientImpl(builder, new SoapClientConfig().jaxbMarshaller());
 
         // language=XML
         String envelope = """
@@ -55,8 +45,12 @@ class CountrySoapClientImplTest {
                 </soap:Envelope>
                 """;
 
-        when(rt.postForObject(eq("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso"), any(), eq(String.class)))
-                .thenReturn(envelope);
+        when(rt.post()).thenReturn(uriSpec);
+        when(uriSpec.uri(eq("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso"))).thenReturn(bodySpec);
+        when(bodySpec.headers(any())).thenReturn(bodySpec);
+        when(bodySpec.body(Mockito.<Object>any())).thenReturn(bodySpec);
+        when(bodySpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(eq(String.class))).thenReturn(envelope);
 
         var actual = Objects.requireNonNull(client.getCountries(new CountriesRequest()));
 
@@ -66,13 +60,74 @@ class CountrySoapClientImplTest {
 
     @Test
     void getCountries_when_error_returns_empty_list() {
-        RestTemplateBuilder builder = Mockito.mock(RestTemplateBuilder.class);
-        RestTemplate rt = Mockito.mock(RestTemplate.class);
+        RestClient.Builder builder = Mockito.mock(RestClient.Builder.class);
+        RestClient rt = Mockito.mock(RestClient.class);
+        RestClient.RequestBodyUriSpec uriSpec = Mockito.mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.RequestBodySpec bodySpec = Mockito.mock(RestClient.RequestBodySpec.class);
+        RestClient.ResponseSpec responseSpec = Mockito.mock(RestClient.ResponseSpec.class);
         when(builder.build()).thenReturn(rt);
-        CountrySoapClientImpl client = new CountrySoapClientImpl(builder, marshaller());
+        var client = new CountrySoapClientImpl(builder, new SoapClientConfig().jaxbMarshaller());
 
-        when(rt.postForObject(eq("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso"), any(), eq(String.class)))
-                .thenThrow(new RuntimeException("boom"));
+        when(rt.post()).thenReturn(uriSpec);
+        when(uriSpec.uri(eq("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso"))).thenReturn(bodySpec);
+        when(bodySpec.headers(any())).thenReturn(bodySpec);
+        when(bodySpec.body(Mockito.<Object>any())).thenReturn(bodySpec);
+        when(bodySpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(eq(String.class))).thenThrow(new RuntimeException("boom"));
+
+        var actual = client.getCountries(new CountriesRequest());
+
+        assertThat(actual.getCountries()).isEmpty();
+    }
+
+    @Test
+    void getCountries_when_blank_payload_returns_empty_list() {
+        RestClient.Builder builder = Mockito.mock(RestClient.Builder.class);
+        RestClient rt = Mockito.mock(RestClient.class);
+        RestClient.RequestBodyUriSpec uriSpec = Mockito.mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.RequestBodySpec bodySpec = Mockito.mock(RestClient.RequestBodySpec.class);
+        RestClient.ResponseSpec responseSpec = Mockito.mock(RestClient.ResponseSpec.class);
+        when(builder.build()).thenReturn(rt);
+        var client = new CountrySoapClientImpl(builder, new SoapClientConfig().jaxbMarshaller());
+
+        when(rt.post()).thenReturn(uriSpec);
+        when(uriSpec.uri(eq("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso"))).thenReturn(bodySpec);
+        when(bodySpec.headers(any())).thenReturn(bodySpec);
+        when(bodySpec.body(Mockito.<Object>any())).thenReturn(bodySpec);
+        when(bodySpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(eq(String.class))).thenReturn("   ");
+
+        var actual = client.getCountries(new CountriesRequest());
+
+        assertThat(actual.getCountries()).isEmpty();
+    }
+
+    @Test
+    void getCountries_when_response_missing_target_element_returns_empty_list() {
+        RestClient.Builder builder = Mockito.mock(RestClient.Builder.class);
+        RestClient rt = Mockito.mock(RestClient.class);
+        RestClient.RequestBodyUriSpec uriSpec = Mockito.mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.RequestBodySpec bodySpec = Mockito.mock(RestClient.RequestBodySpec.class);
+        RestClient.ResponseSpec responseSpec = Mockito.mock(RestClient.ResponseSpec.class);
+        when(builder.build()).thenReturn(rt);
+        var client = new CountrySoapClientImpl(builder, new SoapClientConfig().jaxbMarshaller());
+
+        // language=XML
+        String envelope = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                  <soap:Body>
+                    <m:SomethingElse xmlns:m="http://www.oorsprong.org/websamples.countryinfo"/>
+                  </soap:Body>
+                </soap:Envelope>
+                """;
+
+        when(rt.post()).thenReturn(uriSpec);
+        when(uriSpec.uri(eq("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso"))).thenReturn(bodySpec);
+        when(bodySpec.headers(any())).thenReturn(bodySpec);
+        when(bodySpec.body(Mockito.<Object>any())).thenReturn(bodySpec);
+        when(bodySpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(eq(String.class))).thenReturn(envelope);
 
         var actual = client.getCountries(new CountriesRequest());
 

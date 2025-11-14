@@ -9,7 +9,7 @@ import org.springframework.ws.transport.http.HttpComponents5MessageSender;
 import java.time.Duration;
 
 @Configuration
-class SoapClientConfig {
+public class SoapClientConfig {
     @Bean
     public Jaxb2Marshaller jaxbMarshaller() {
         var marshaller = new Jaxb2Marshaller();

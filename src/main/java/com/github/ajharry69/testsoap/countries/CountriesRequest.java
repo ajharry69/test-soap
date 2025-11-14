@@ -4,9 +4,6 @@ import jakarta.xml.bind.annotation.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
@@ -15,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -57,11 +54,11 @@ interface CountrySoapClient {
 @Component
 @Slf4j
 class CountrySoapClientImpl implements CountrySoapClient {
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final Jaxb2Marshaller marshaller;
 
-    public CountrySoapClientImpl(RestTemplateBuilder builder, Jaxb2Marshaller marshaller) {
-        this.restTemplate = builder.build();
+    public CountrySoapClientImpl(RestClient.Builder builder, Jaxb2Marshaller marshaller) {
+        this.restClient = builder.build();
         this.marshaller = marshaller;
     }
 
@@ -79,40 +76,28 @@ class CountrySoapClientImpl implements CountrySoapClient {
                     </soap:Envelope>
                     """;
 
-            var headers = new HttpHeaders();
-            headers.setContentType(MediaType.TEXT_XML);
-            headers.setAccept(List.of(MediaType.TEXT_XML, MediaType.APPLICATION_XML));
-            headers.add("SOAPAction", "https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso/ListOfCountryNamesByName");
-
-            HttpEntity<String> entity = new HttpEntity<>(envelope, headers);
-            var xml = restTemplate.postForObject(
-                    "https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso",
-                    entity,
-                    String.class
-            );
-
-            if (xml == null || xml.isBlank()) return getEmptyCountriesResponse();
+            var xml = restClient.post()
+                    .uri("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso")
+                    .headers(headers -> {
+                        headers.setContentType(MediaType.TEXT_XML);
+                        headers.setAccept(List.of(MediaType.TEXT_XML, MediaType.APPLICATION_XML));
+                        headers.add("SOAPAction", "https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso/ListOfCountryNamesByName");
+                    })
+                    .body(envelope)
+                    .retrieve()
+                    .body(String.class);
 
             // Parse and extract the payload element
             var dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
             var doc = dbf.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
-            // var body = doc.getDocumentElement(); // not used
-            // Find the response element: {http://www.oorsprong.org/websamples.countryinfo}ListOfCountryNamesByNameResponse
             var nl = doc.getElementsByTagNameNS("http://www.oorsprong.org/websamples.countryinfo", "ListOfCountryNamesByNameResponse");
             if (nl.getLength() == 0) return getEmptyCountriesResponse();
 
             var responseEl = nl.item(0);
             var source = new DOMSource(responseEl);
-            if (marshaller.unmarshal(source) instanceof CountriesResponse cr) {
-                // Lombok @Data ensures non-null list only if set; ensure not null
-                if (cr.getCountries() == null) {
-                    cr.setCountries(Collections.emptyList());
-                }
-                return cr;
-            }
-            return getEmptyCountriesResponse();
+            return (CountriesResponse) marshaller.unmarshal(source);
         } catch (Exception e) {
             log.error("Error fetching countries", e);
             return getEmptyCountriesResponse();
