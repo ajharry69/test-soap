@@ -2,6 +2,7 @@ package com.github.ajharry69.testsoap;
 
 import com.github.ajharry69.testsoap.transactions.Transaction;
 import com.github.ajharry69.testsoap.transactions.TransactionRepository;
+import lombok.extern.slf4j.Slf4j;
 import net.datafaker.Faker;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.devtools.restart.RestartScope;
@@ -13,9 +14,11 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 
 @TestConfiguration(proxyBeanMethods = false)
+@Slf4j
 class TestcontainersConfiguration {
 
     @Bean
@@ -31,15 +34,21 @@ class TestcontainersConfiguration {
     CommandLineRunner seedTransactions(TransactionRepository repository) {
         var faker = new Faker();
         return args -> {
-            List<Transaction> transactions = new ArrayList<>();
-            for (int i = 0; i < new Random().nextInt(200, 1000); i++) {
-                var transaction = Transaction.builder()
-                        .orderNumber(faker.finance().creditCard())
-                        .status(faker.options().option(Transaction.Status.class))
-                        .build();
-                transactions.add(transaction);
+            try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
+                List<CompletableFuture<Void>> transactions = new ArrayList<>(1_000_000);
+                for (int i = 0; i < 1_000_000; i++) {
+                    var transaction = Transaction.builder()
+                            .orderNumber(faker.finance().creditCard())
+                            .status(faker.options().option(Transaction.Status.class))
+                            .build();
+                    transactions.add(CompletableFuture.runAsync(() -> {
+                        Thread thread = Thread.currentThread();
+                        log.info("Thread={}, isVirtual={}", thread, thread.isVirtual());
+                        repository.save(transaction);
+                    }, exec));
+                }
+                transactions.forEach(CompletableFuture::join);
             }
-            repository.saveAll(transactions);
         };
     }
 
