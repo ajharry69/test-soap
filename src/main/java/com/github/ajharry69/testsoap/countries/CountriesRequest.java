@@ -16,13 +16,15 @@ import org.springframework.web.client.RestClient;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
 @Data
-@XmlAccessorType(XmlAccessType.FIELD)
+@XmlAccessorType
 @XmlRootElement(name = "ListOfCountryNamesByName", namespace = "https://soap-service-free.mock.beeceptor.com/CountryInfoService")
 class CountriesRequest {
 }
@@ -65,16 +67,17 @@ class CountrySoapClientImpl implements CountrySoapClient {
     @Override
     public CountriesResponse getCountries(CountriesRequest request) {
         try {
-            // Build SOAP 1.1 envelope
+            String bodyPayload = marshalRequest(request);
+
             // language=XML
             String envelope = """
                     <?xml version="1.0" encoding="utf-8"?>
-                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="https://soap-service-free.mock.beeceptor.com/CountryInfoService">
+                    <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
                       <soap:Body>
-                        <tns:ListOfCountryNamesByName/>
+                        %s
                       </soap:Body>
                     </soap:Envelope>
-                    """;
+                    """.formatted(bodyPayload);
 
             var xml = restClient.post()
                     .uri("https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso")
@@ -102,6 +105,13 @@ class CountrySoapClientImpl implements CountrySoapClient {
             log.error("Error fetching countries", e);
             return getEmptyCountriesResponse();
         }
+    }
+
+    private String marshalRequest(CountriesRequest request) {
+        var writer = new StringWriter();
+        var result = new StreamResult(writer);
+        marshaller.marshal(request, result);
+        return writer.toString();
     }
 
     private static CountriesResponse getEmptyCountriesResponse() {
