@@ -22,6 +22,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 @Data
 @XmlAccessorType
@@ -90,17 +91,18 @@ class CountrySoapClientImpl implements CountrySoapClient {
                     .retrieve()
                     .body(String.class);
 
-            // Parse and extract the payload element
             var dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
-            var doc = dbf.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+            try (var is = new ByteArrayInputStream(Objects.requireNonNull(xml).getBytes(StandardCharsets.UTF_8))) {
+                var doc = dbf.newDocumentBuilder().parse(is);
 
-            var nl = doc.getElementsByTagNameNS("http://www.oorsprong.org/websamples.countryinfo", "ListOfCountryNamesByNameResponse");
-            if (nl.getLength() == 0) return getEmptyCountriesResponse();
+                var nl = doc.getElementsByTagNameNS("http://www.oorsprong.org/websamples.countryinfo", "ListOfCountryNamesByNameResponse");
+                if (nl.getLength() == 0) return getEmptyCountriesResponse();
 
-            var responseEl = nl.item(0);
-            var source = new DOMSource(responseEl);
-            return (CountriesResponse) marshaller.unmarshal(source);
+                var responseEl = nl.item(0);
+                var source = new DOMSource(responseEl);
+                return (CountriesResponse) marshaller.unmarshal(source);
+            }
         } catch (Exception e) {
             log.error("Error fetching countries", e);
             return getEmptyCountriesResponse();
