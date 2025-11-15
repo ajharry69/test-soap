@@ -25,7 +25,7 @@ class TransactionService {
     private final ApplicationProperties properties;
 
     @Transactional(readOnly = true)
-    @Scheduled(fixedDelay = 10, initialDelay = 5, timeUnit = TimeUnit.SECONDS)
+    @Scheduled(cron = "0 */5 * * * *", timeUnit = TimeUnit.SECONDS)
     public void findAndPollPendingTransactions() {
         log.info("[Scheduler] Waking up to find pending transactions...");
         var pendingStatuses = Set.of(Transaction.Status.PENDING);
