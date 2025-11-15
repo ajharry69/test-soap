@@ -1,9 +1,10 @@
 package com.github.ajharry69.testsoap;
 
-import com.github.ajharry69.testsoap.transactions.Transaction;
-import com.github.ajharry69.testsoap.transactions.TransactionRepository;
+import com.github.ajharry69.testsoap.locations.Location;
+import com.github.ajharry69.testsoap.locations.LocationRepository;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
+import net.datafaker.Faker;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.devtools.restart.RestartScope;
@@ -22,6 +23,7 @@ import java.util.concurrent.Semaphore;
 @TestConfiguration(proxyBeanMethods = false)
 @Slf4j
 class TestcontainersConfiguration {
+    private static final Faker faker = new Faker();
 
     @Bean
     @RestartScope
@@ -33,8 +35,8 @@ class TestcontainersConfiguration {
     }
 
     @Bean
-    @ConditionalOnBooleanProperty(name = "app.seed.transactions")
-    CommandLineRunner seedTransactions(TransactionRepository repo, HikariDataSource ds) {
+    @ConditionalOnBooleanProperty(name = "app.seed.locations")
+    CommandLineRunner seedTransactions(LocationRepository repo, HikariDataSource ds) {
         return args -> {
             int rows = Integer.parseInt(System.getProperty("seed.rows", "10000"));
             int maxConcurrent = ds.getMaximumPoolSize(); // honor pool capacity
@@ -44,9 +46,8 @@ class TestcontainersConfiguration {
                 List<CompletableFuture<Void>> inFlight = new ArrayList<>(maxConcurrent);
                 for (int i = 0; i < rows; i++) {
                     sem.acquireUninterruptibly();
-                    var t = Transaction.builder()
-                            .orderNumber("ORD-" + i)
-                            .status(Transaction.Status.PENDING)
+                    var t = Location.builder()
+                            .name(faker.address().fullAddress())
                             .build();
                     var f = CompletableFuture.runAsync(() -> {
                         try {

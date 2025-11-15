@@ -24,6 +24,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+interface CountrySoapClient {
+    CountriesResponse getCountries(CountriesRequest request);
+}
+
 @Data
 @XmlAccessorType
 @XmlRootElement(name = "ListOfCountryNamesByName", namespace = "https://soap-service-free.mock.beeceptor.com/CountryInfoService")
@@ -50,10 +54,6 @@ class CountriesResponse {
     private List<CountryResponse> countries;
 }
 
-interface CountrySoapClient {
-    CountriesResponse getCountries(CountriesRequest request);
-}
-
 @Component
 @Slf4j
 class CountrySoapClientImpl implements CountrySoapClient {
@@ -63,6 +63,12 @@ class CountrySoapClientImpl implements CountrySoapClient {
     public CountrySoapClientImpl(RestClient.Builder builder, Jaxb2Marshaller marshaller) {
         this.restClient = builder.build();
         this.marshaller = marshaller;
+    }
+
+    private static CountriesResponse getEmptyCountriesResponse() {
+        var r = new CountriesResponse();
+        r.setCountries(Collections.emptyList());
+        return r;
     }
 
     @Override
@@ -114,12 +120,6 @@ class CountrySoapClientImpl implements CountrySoapClient {
         var result = new StreamResult(writer);
         marshaller.marshal(request, result);
         return writer.toString();
-    }
-
-    private static CountriesResponse getEmptyCountriesResponse() {
-        var r = new CountriesResponse();
-        r.setCountries(Collections.emptyList());
-        return r;
     }
 }
 

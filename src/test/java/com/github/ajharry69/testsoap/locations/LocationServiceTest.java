@@ -1,4 +1,4 @@
-package com.github.ajharry69.testsoap.transactions;
+package com.github.ajharry69.testsoap.locations;
 
 import com.github.ajharry69.testsoap.ApplicationProperties;
 import com.github.ajharry69.testsoap.temperature.TemperatureRequest;
@@ -23,22 +23,23 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TransactionServiceTest {
+class LocationServiceTest {
     @Mock
-    private TransactionRepository repo;
+    private LocationRepository repo;
     @Mock
     private TemperatureSoapClient client;
 
     @Test
     void no_pending_exits_early_without_side_effects() {
-        when(repo.countByStatusIn(any())).thenReturn(0L);
+        when(repo.countByRetriesCountLessThanAndCelsiusIsNullOrFahrenheitIsNull(anyInt()))
+                .thenReturn(0L);
 
         var properties = ApplicationProperties.builder()
                 .maxConcurrent(5)
                 .build();
-        var service = new TransactionService(repo, client, properties);
+        var service = new LocationService(repo, client, properties);
 
-        service.findAndPollPendingTransactions();
+        service.updateLocationTemperatures();
 
         verify(repo, never()).save(any());
         verify(client, never()).getTemperature(any(TemperatureRequest.class));
@@ -46,25 +47,22 @@ class TransactionServiceTest {
 
     @Test
     void processes_each_transaction_and_saves_before_and_after() {
-        // Two pending transactions with predefined Fahrenheit values
-        var t1 = Transaction.builder()
+        // Two pending locations with predefined Fahrenheit values
+        var t1 = Location.builder()
                 .id(UUID.randomUUID())
-                .status(Transaction.Status.PENDING)
                 .fahrenheit(100.0)
                 .build();
-        var t2 = Transaction.builder()
+        var t2 = Location.builder()
                 .id(UUID.randomUUID())
-                .status(Transaction.Status.PENDING)
                 .fahrenheit(32.0)
                 .build();
-        var t3 = Transaction.builder()
+        var t3 = Location.builder()
                 .id(UUID.randomUUID())
-                .status(Transaction.Status.PENDING)
                 .build();
 
-        when(repo.findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(anyInt(), anyCollection()))
+        when(repo.findByRetriesCountLessThanAndCelsiusIsNullOrFahrenheitIsNullOrderByDateUpdatedAsc(anyInt()))
                 .thenReturn(Stream.of(t1, t2, t3));
-        when(repo.countByStatusIn(anyCollection())).thenReturn(3L);
+        when(repo.countByRetriesCountLessThanAndCelsiusIsNullOrFahrenheitIsNull(anyInt())).thenReturn(3L);
 
         when(client.getTemperature(any(TemperatureRequest.class)))
                 .thenReturn(
@@ -85,16 +83,16 @@ class TransactionServiceTest {
         var properties = ApplicationProperties.builder()
                 .maxConcurrent(4)
                 .build();
-        var service = new TransactionService(repo, client, properties);
-        service.findAndPollPendingTransactions();
+        var service = new LocationService(repo, client, properties);
+        service.updateLocationTemperatures();
 
         // Each item saved twice (before soap call and after)
-        ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
+        ArgumentCaptor<Location> saved = ArgumentCaptor.forClass(Location.class);
         verify(repo, times(6)).save(saved.capture());
 
-        // After completion, both transactions should have Celsius set based on responses
+        // After completion, both locations should have Celsius set based on responses
         // We can't guarantee order, so assert at least one has Celsius 0 and one ~37.77
-        List<Transaction> savedItems = saved.getAllValues();
+        List<Location> savedItems = saved.getAllValues();
         assertThat(savedItems.size())
                 .isEqualTo(6);
     }
@@ -103,10 +101,15 @@ class TransactionServiceTest {
     void concurrency_is_bounded_by_semaphore_when_invoking_soap_calls() {
         int total = 12;
         var list = range(0, total)
-                .mapToObj(i -> Transaction.builder().id(UUID.randomUUID()).status(Transaction.Status.PENDING).fahrenheit(100.0 + i).build())
+                .mapToObj(i -> Location.builder()
+                        .id(UUID.randomUUID())
+                        .fahrenheit(100.0 + i)
+                        .build())
                 .toList();
-        when(repo.findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(anyInt(), anyCollection())).thenReturn(list.stream());
-        when(repo.countByStatusIn(anyCollection())).thenReturn((long) total);
+        when(repo.findByRetriesCountLessThanAndCelsiusIsNullOrFahrenheitIsNullOrderByDateUpdatedAsc(anyInt()))
+                .thenReturn(list.stream());
+        when(repo.countByRetriesCountLessThanAndCelsiusIsNullOrFahrenheitIsNull(anyInt()))
+                .thenReturn((long) total);
 
         AtomicInteger inflight = new AtomicInteger();
         AtomicInteger maxSeen = new AtomicInteger();
@@ -129,9 +132,9 @@ class TransactionServiceTest {
         var properties = ApplicationProperties.builder()
                 .maxConcurrent(limit)
                 .build();
-        var service = new TransactionService(repo, client, properties);
+        var service = new LocationService(repo, client, properties);
         long start = System.nanoTime();
-        service.findAndPollPendingTransactions();
+        service.updateLocationTemperatures();
         long tookMs = Duration.ofNanos(System.nanoTime() - start).toMillis();
 
         // Assert the observed concurrency never exceeded the limit
@@ -142,14 +145,13 @@ class TransactionServiceTest {
 
     @Test
     void null_celsius_in_response_is_handled_gracefully() {
-        Transaction t1 = Transaction.builder()
+        Location t1 = Location.builder()
                 .id(UUID.randomUUID())
-                .status(Transaction.Status.PENDING)
                 .fahrenheit(100.0)
                 .build();
-        when(repo.findByRetriesCountLessThanAndStatusInOrderByDateUpdatedAsc(anyInt(), anyCollection()))
+        when(repo.findByRetriesCountLessThanAndCelsiusIsNullOrFahrenheitIsNullOrderByDateUpdatedAsc(anyInt()))
                 .thenReturn(Stream.of(t1));
-        when(repo.countByStatusIn(anyCollection()))
+        when(repo.countByRetriesCountLessThanAndCelsiusIsNullOrFahrenheitIsNull(anyInt()))
                 .thenReturn(1L);
 
         TemperatureResponse r = new TemperatureResponse();
@@ -159,10 +161,10 @@ class TransactionServiceTest {
         var properties = ApplicationProperties.builder()
                 .maxConcurrent(1)
                 .build();
-        var service = new TransactionService(repo, client, properties);
-        service.findAndPollPendingTransactions();
+        var service = new LocationService(repo, client, properties);
+        service.updateLocationTemperatures();
 
-        ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
+        ArgumentCaptor<Location> saved = ArgumentCaptor.forClass(Location.class);
         verify(repo, atLeastOnce()).save(saved.capture());
         // Ensure we did not set Celsius to a number when the response is null
         assertThat(saved.getAllValues().stream().anyMatch(tr -> tr.getCelsius() == null)).isTrue();

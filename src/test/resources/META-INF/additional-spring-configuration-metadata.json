@@ -1,9 +1,9 @@
 {
   "properties": [
     {
-      "name": "app.seed.transactions",
+      "name": "app.seed.locations",
       "type": "java.lang.Boolean",
-      "description": "Description for app.seed.transactions.",
+      "description": "Flag to seed database with test locations.",
       "defaultValue": false
     }
   ]

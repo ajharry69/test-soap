@@ -3,8 +3,8 @@ package com.github.ajharry69.testsoap.countries;
 import org.junit.jupiter.api.Test;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.dom.DOMSource;
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,19 +15,19 @@ class CountriesJaxbMappingTest {
     void unmarshal_response_with_namespace_maps_list_items() throws Exception {
         // language=XML
         String xml = """
-            <ListOfCountryNamesByNameResponse xmlns="http://www.oorsprong.org/websamples.countryinfo">
-              <ListOfCountryNamesByNameResult>
-                <tCountryCodeAndName>
-                  <sISOCode>AX</sISOCode>
-                  <sName>Åland Islands</sName>
-                </tCountryCodeAndName>
-                <tCountryCodeAndName>
-                  <sISOCode>AF</sISOCode>
-                  <sName>Afghanistan</sName>
-                </tCountryCodeAndName>
-              </ListOfCountryNamesByNameResult>
-            </ListOfCountryNamesByNameResponse>
-            """;
+                <ListOfCountryNamesByNameResponse xmlns="http://www.oorsprong.org/websamples.countryinfo">
+                  <ListOfCountryNamesByNameResult>
+                    <tCountryCodeAndName>
+                      <sISOCode>AX</sISOCode>
+                      <sName>Åland Islands</sName>
+                    </tCountryCodeAndName>
+                    <tCountryCodeAndName>
+                      <sISOCode>AF</sISOCode>
+                      <sName>Afghanistan</sName>
+                    </tCountryCodeAndName>
+                  </ListOfCountryNamesByNameResult>
+                </ListOfCountryNamesByNameResponse>
+                """;
 
         var marshaller = new Jaxb2Marshaller();
         marshaller.setPackagesToScan("com.github.ajharry69.testsoap.countries");

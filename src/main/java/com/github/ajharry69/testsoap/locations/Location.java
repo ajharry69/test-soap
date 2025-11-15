@@ -1,4 +1,4 @@
-package com.github.ajharry69.testsoap.transactions;
+package com.github.ajharry69.testsoap.locations;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,11 +13,10 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "transactions",
+        name = "locations",
         indexes = {
-                @Index(columnList = "status"),
-                @Index(columnList = "date_created"),
-                @Index(columnList = "date_updated")
+                @Index(columnList = "date_created", name = "idx_locations_date_created"),
+                @Index(columnList = "date_updated", name = "idx_locations_date_updated")
         }
 )
 @Builder
@@ -26,16 +25,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class Transaction {
+public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(nullable = false)
     @JdbcTypeCode(SqlTypes.UUID)
     private UUID id;
 
-    private String orderNumber;
-    @Enumerated(EnumType.STRING)
-    private Status status = Status.PENDING;
+    private String name;
     @CreatedDate
     @Column(updatable = false)
     private OffsetDateTime dateCreated;
@@ -45,10 +42,4 @@ public class Transaction {
     private Double fahrenheit;
     private Double celsius;
     private int retriesCount = 0;
-
-    public enum Status {
-        PENDING,
-        COMPLETED,
-        FAILED
-    }
 }

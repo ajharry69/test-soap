@@ -14,10 +14,10 @@ class TemperatureJaxbMappingTest {
     void unmarshal_response_with_namespace_maps_value() throws Exception {
         // language=XML
         String xml = """
-            <FahrenheitToCelsiusResponse xmlns="https://www.w3schools.com/xml/">
-                <FahrenheitToCelsiusResult>23.8888888888889</FahrenheitToCelsiusResult>
-            </FahrenheitToCelsiusResponse>
-            """;
+                <FahrenheitToCelsiusResponse xmlns="https://www.w3schools.com/xml/">
+                    <FahrenheitToCelsiusResult>23.8888888888889</FahrenheitToCelsiusResult>
+                </FahrenheitToCelsiusResponse>
+                """;
 
         Jaxb2Marshaller marshaller = new Jaxb2Marshaller();
         marshaller.setPackagesToScan("com.github.ajharry69.testsoap.temperature");
