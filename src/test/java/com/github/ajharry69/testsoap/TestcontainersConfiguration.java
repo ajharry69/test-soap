@@ -2,9 +2,10 @@ package com.github.ajharry69.testsoap;
 
 import com.github.ajharry69.testsoap.transactions.Transaction;
 import com.github.ajharry69.testsoap.transactions.TransactionRepository;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
-import net.datafaker.Faker;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.devtools.restart.RestartScope;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 @TestConfiguration(proxyBeanMethods = false)
 @Slf4j
@@ -31,23 +33,37 @@ class TestcontainersConfiguration {
     }
 
     @Bean
-    CommandLineRunner seedTransactions(TransactionRepository repository) {
-        var faker = new Faker();
+    @ConditionalOnBooleanProperty(name = "app.seed.transactions")
+    CommandLineRunner seedTransactions(TransactionRepository repo, HikariDataSource ds) {
         return args -> {
+            int rows = Integer.parseInt(System.getProperty("seed.rows", "10000"));
+            int maxConcurrent = ds.getMaximumPoolSize(); // honor pool capacity
+            log.info("Seeding {} rows with {} concurrent threads...", rows, maxConcurrent);
+            var sem = new Semaphore(Math.max(1, maxConcurrent));
             try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
-                List<CompletableFuture<Void>> transactions = new ArrayList<>(1_000_000);
-                for (int i = 0; i < 1_000_000; i++) {
-                    var transaction = Transaction.builder()
-                            .orderNumber(faker.finance().creditCard())
-                            .status(faker.options().option(Transaction.Status.class))
+                List<CompletableFuture<Void>> inFlight = new ArrayList<>(maxConcurrent);
+                for (int i = 0; i < rows; i++) {
+                    sem.acquireUninterruptibly();
+                    var t = Transaction.builder()
+                            .orderNumber("ORD-" + i)
+                            .status(Transaction.Status.PENDING)
                             .build();
-                    transactions.add(CompletableFuture.runAsync(() -> {
-                        Thread thread = Thread.currentThread();
-                        log.info("Thread={}, isVirtual={}", thread, thread.isVirtual());
-                        repository.save(transaction);
-                    }, exec));
+                    var f = CompletableFuture.runAsync(() -> {
+                        try {
+                            repo.save(t);
+                        } finally {
+                            sem.release();
+                        }
+                    }, exec);
+                    inFlight.add(f);
+                    if (inFlight.size() >= maxConcurrent) {
+                        // join one batch and remove completed to keep memory bounded
+                        CompletableFuture.anyOf(inFlight.toArray(new CompletableFuture[0])).join();
+                        inFlight.removeIf(CompletableFuture::isDone);
+                    }
                 }
-                transactions.forEach(CompletableFuture::join);
+                // join remaining
+                CompletableFuture.allOf(inFlight.toArray(new CompletableFuture[0])).join();
             }
         };
     }

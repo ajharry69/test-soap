@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "app.seed.transactions",
+      "type": "java.lang.Boolean",
+      "description": "Description for app.seed.transactions.",
+      "defaultValue": false
+    }
+  ]
+}
