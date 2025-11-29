@@ -11,9 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class HeaderRuleTest {
     @Nested
     class isValid {
-        record TestCase(String headerValue, boolean expected) {
-        }
-
         static Stream<TestCase> shouldValidateRequired() {
             return Stream.of(
                     new TestCase("", false),
@@ -53,21 +50,13 @@ class HeaderRuleTest {
 
             assertEquals(testCase.expected(), actual);
         }
+
+        record TestCase(String headerValue, boolean expected) {
+        }
     }
 
     @Nested
     class equals {
-        record TestCase(HeaderRule rule1, Object rule2, boolean expected) {
-        }
-
-        @ParameterizedTest
-        @MethodSource
-        void shouldCorrectlyEvaluateEquals(TestCase testCase) {
-            var actual = testCase.rule1.equals(testCase.rule2);
-
-            assertEquals(testCase.expected(), actual);
-        }
-
         static Stream<TestCase> shouldCorrectlyEvaluateEquals() {
             return Stream.of(
                     new TestCase(new HeaderRule(), new HeaderRule(), true),
@@ -175,6 +164,17 @@ class HeaderRuleTest {
                             true
                     )
             );
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void shouldCorrectlyEvaluateEquals(TestCase testCase) {
+            var actual = testCase.rule1.equals(testCase.rule2);
+
+            assertEquals(testCase.expected(), actual);
+        }
+
+        record TestCase(HeaderRule rule1, Object rule2, boolean expected) {
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.github.ajharry69.testsoap.bpm.common.headers;
 
-import com.github.ajharry69.testsoap.bpm.common.headers.validators.HeaderValidator;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.EpochTimestampValidator;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.RegexValidator;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -25,7 +26,7 @@ public class HeaderValidationProperties {
                     .required(false)
                     .build(),
             HeaderRule.builder().headerName("X-MinorServiceVersion")
-                    .validator(new HeaderValidator.Regex(Pattern.compile("v?\\d+(.\\d+){0,2}", Pattern.CASE_INSENSITIVE)))
+                    .validator(new RegexValidator(Pattern.compile("v?\\d+(.\\d+){0,2}", Pattern.CASE_INSENSITIVE)))
                     .build(),
             HeaderRule.builder().headerName("X-ChannelCategory")
                     .build(),
@@ -38,7 +39,7 @@ public class HeaderValidationProperties {
                     .build(),
             HeaderRule.builder().headerName("X-TimeStamp")
                     .required(false)
-                    .validator(new HeaderValidator.EpochTimestamp())
+                    .validator(new EpochTimestampValidator())
                     .build(),
             HeaderRule.builder().headerName("X-ServiceMode")
                     .required(false)
@@ -48,7 +49,7 @@ public class HeaderValidationProperties {
                     .build(),
             HeaderRule.builder().headerName("X-CallBackURL")
                     .required(false)
-                    .validator(new HeaderValidator.Regex("^https?://.+..+"))
+                    .validator(new RegexValidator("^https?://.+..+"))
                     .build()
     );
     private Set<HeaderRule> headers;

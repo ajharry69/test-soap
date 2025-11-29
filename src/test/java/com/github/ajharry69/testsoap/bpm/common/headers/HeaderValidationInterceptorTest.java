@@ -3,7 +3,7 @@ package com.github.ajharry69.testsoap.bpm.common.headers;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeadersValidationException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
-import com.github.ajharry69.testsoap.bpm.common.headers.validators.HeaderValidator;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.RegexValidator;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -63,7 +63,7 @@ class HeaderValidationInterceptorTest {
     void whenMissingRequired_thenThrowsAggregatedException() {
         var required = HeaderRule.builder().headerName("X-Req").required(true).build();
         var invalid = HeaderRule.builder().headerName("X-Invalid").required(true)
-                .validator(new HeaderValidator.Regex("^v\\d+$")).build();
+                .validator(new RegexValidator("^v\\d+$")).build();
 
         var props = new HeaderValidationProperties();
         props.setHeaders(new HashSet<>(Set.of(required, invalid)));

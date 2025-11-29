@@ -2,7 +2,7 @@ package com.github.ajharry69.testsoap.bpm.common.headers;
 
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
-import com.github.ajharry69.testsoap.bpm.common.headers.validators.HeaderValidator;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.RegexValidator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,7 +36,7 @@ class HeaderValidatorServiceTest {
     @Test
     void whenPresentButInvalid_thenThrowsInvalidHeaderValueException() {
         var rule = HeaderRule.builder().headerName("X-Regex").required(true)
-                .validator(new HeaderValidator.Regex("^v\\d+$")).build();
+                .validator(new RegexValidator("^v\\d+$")).build();
 
         assertThrows(InvalidHeaderValueException.class, () -> service.validate(rule, "bad"));
     }
@@ -44,7 +44,7 @@ class HeaderValidatorServiceTest {
     @Test
     void whenPresentAndValid_thenPasses() {
         var rule = HeaderRule.builder().headerName("X-Regex").required(true)
-                .validator(new HeaderValidator.Regex("^v\\d+$")).build();
+                .validator(new RegexValidator("^v\\d+$")).build();
 
         assertDoesNotThrow(() -> service.validate(rule, "v1"));
     }
