@@ -17,7 +17,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -51,13 +50,12 @@ class GlobalExceptionHandlerTest {
         @ParameterizedTest
         @MethodSource
         void shouldMapExceptionToUnsupportedMediaTypePayload(String fileExtension) {
-            var request = new MockHttpServletRequest();
             KCBRequestContextHolder.setContext(new KCBRequestContext("conv-001", "msg-001"));
 
             var ex = new DocumentExtensionMismatchException("exe", fileExtension);
             var handler = new GlobalExceptionHandler();
 
-            var actual = handler.handleDocumentExtensionMismatchException(ex, request);
+            var actual = handler.handleDocumentExtensionMismatchException(ex);
 
             var body = Objects.requireNonNull(actual.getBody());
             assertAll(
@@ -75,13 +73,12 @@ class GlobalExceptionHandlerTest {
     class handleHttpMediaTypeNotSupportedException {
         @Test
         void shouldMapExceptionToUnsupportedMediaTypePayload() {
-            var request = new MockHttpServletRequest();
             KCBRequestContextHolder.setContext(new KCBRequestContext("conv-001", "msg-001"));
 
             var ex = new HttpMediaTypeNotSupportedException("Error");
             var handler = new GlobalExceptionHandler();
 
-            var actual = handler.handleHttpMediaTypeNotSupportedException(ex, request);
+            var actual = handler.handleHttpMediaTypeNotSupportedException(ex);
 
             var body = Objects.requireNonNull(actual.getBody());
             assertAll(
@@ -98,7 +95,6 @@ class GlobalExceptionHandlerTest {
     class handleHeadersValidationException {
         @Test
         void shouldMapExceptionsToBadRequestPayload() {
-            var request = new MockHttpServletRequest();
             KCBRequestContextHolder.setContext(new KCBRequestContext("conv-001", "msg-001"));
 
             var missingRule = HeaderRule.builder().headerName("X-FeatureName").required(true).build();
@@ -109,7 +105,7 @@ class GlobalExceptionHandlerTest {
             ex.addHeaderException(new InvalidHeaderValueException(invalidRule, "v1.alpha"));
             var handler = new GlobalExceptionHandler();
 
-            var actual = handler.handleHeadersValidationException(ex, request);
+            var actual = handler.handleHeadersValidationException(ex);
 
             var body = Objects.requireNonNull(actual.getBody());
             assertAll(
@@ -134,7 +130,6 @@ class GlobalExceptionHandlerTest {
     class handleBindException {
         @Test
         void shouldReturnStructuredPayload() {
-            var request = new MockHttpServletRequest();
             KCBRequestContextHolder.setContext(new KCBRequestContext("conv-abc", "mid-123"));
 
             var target = new Object();
@@ -143,7 +138,7 @@ class GlobalExceptionHandlerTest {
             var ex = new BindException(binding);
 
             var handler = new GlobalExceptionHandler();
-            var resp = handler.handleBindException(ex, request);
+            var resp = handler.handleBindException(ex);
 
             var body = Objects.requireNonNull(resp.getBody());
             assertAll(
@@ -161,12 +156,11 @@ class GlobalExceptionHandlerTest {
     class handleMultipartExceptions {
         @Test
         void shouldReturnStructuredPayload() {
-            var request = new MockHttpServletRequest();
             KCBRequestContextHolder.setContext(new KCBRequestContext("conv-555", "mid-123"));
 
             var ex = new MissingServletRequestPartException("file");
             var handler = new GlobalExceptionHandler();
-            var resp = handler.handleMultipartExceptions(ex, request);
+            var resp = handler.handleMultipartExceptions(ex);
 
             var body = Objects.requireNonNull(resp.getBody());
             assertAll(
@@ -183,7 +177,6 @@ class GlobalExceptionHandlerTest {
     class handleConstraintViolationException {
         @Test
         void shouldReturnStructuredPayload() {
-            var request = new MockHttpServletRequest();
             KCBRequestContextHolder.setContext(new KCBRequestContext("conv-999", "mid-901"));
 
             ConstraintViolation<Object> violation = mock(ConstraintViolation.class);
@@ -197,7 +190,7 @@ class GlobalExceptionHandlerTest {
 
             var ex = new ConstraintViolationException(Set.of(violation));
             var handler = new GlobalExceptionHandler();
-            var resp = handler.handleConstraintViolationException(ex, request);
+            var resp = handler.handleConstraintViolationException(ex);
 
             var body = Objects.requireNonNull(resp.getBody());
             assertAll(
@@ -214,7 +207,6 @@ class GlobalExceptionHandlerTest {
     class handleHttpMessageNotReadable {
         @Test
         void shouldMapUnknownPropertyTo400WithDescriptiveMessage() {
-            var request = new MockHttpServletRequest();
             KCBRequestContextHolder.setContext(new KCBRequestContext("conv-xyz", "msg-xyz"));
             var cause = mock(UnrecognizedPropertyException.class);
             when(cause.getPropertyName())
@@ -224,7 +216,7 @@ class GlobalExceptionHandlerTest {
             var handler = new GlobalExceptionHandler();
             var exception = new HttpMessageNotReadableException("JSON parse error", cause, null);
 
-            var actual = handler.handleHttpMessageNotReadable(exception, request);
+            var actual = handler.handleHttpMessageNotReadable(exception);
 
             var body = Objects.requireNonNull(actual.getBody());
             assertAll(

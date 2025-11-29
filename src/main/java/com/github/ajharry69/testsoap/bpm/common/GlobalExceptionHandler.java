@@ -7,7 +7,6 @@ import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeadersValida
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
 import com.github.ajharry69.testsoap.bpm.dto.ResponsePayload;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +30,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(DocumentExtensionMismatchException.class)
-    ResponseEntity<ResponsePayload<?>> handleDocumentExtensionMismatchException(DocumentExtensionMismatchException exception, HttpServletRequest request) {
+    ResponseEntity<ResponsePayload<?>> handleDocumentExtensionMismatchException(DocumentExtensionMismatchException exception) {
         var response = createErrorResponse(
-                request,
                 "4000453",
                 "Document extension '%s' does not match file extension '%s'".formatted(exception.getDocumentExtension(), exception.getFileExtension())
         );
@@ -42,10 +40,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-    ResponseEntity<ResponsePayload<?>> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException exception, HttpServletRequest request) {
+    ResponseEntity<ResponsePayload<?>> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException exception) {
         log.error("Unsupported content type", exception);
         var response = createErrorResponse(
-                request,
                 "ERR-UNSUPPORTED_CONTENT_TYPE",
                 "Unsupported content type: %s".formatted(exception.getContentType())
         );
@@ -54,8 +51,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HeadersValidationException.class)
-    ResponseEntity<ResponsePayload<?>> handleHeadersValidationException(HeadersValidationException exception, HttpServletRequest request) {
-        var response = createErrorResponse(request, "4000453", "Invalid or invalid request headers");
+    ResponseEntity<ResponsePayload<?>> handleHeadersValidationException(HeadersValidationException exception) {
+        var response = createErrorResponse("4000453", "Invalid or invalid request headers");
 
         var errors = exception.getHeaderExceptions()
                 .stream()
@@ -78,8 +75,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BindException.class)
-    ResponseEntity<ResponsePayload<?>> handleBindException(BindException exception, HttpServletRequest request) {
-        var response = createErrorResponse(request, "4000453", "Validation failed");
+    ResponseEntity<ResponsePayload<?>> handleBindException(BindException exception) {
+        var response = createErrorResponse("4000453", "Validation failed");
         var errors = exception.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> {
                     var errorInfo = new ResponsePayload.ErrorInfo();
@@ -93,8 +90,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    ResponseEntity<ResponsePayload<?>> handleConstraintViolationException(ConstraintViolationException exception, HttpServletRequest request) {
-        var response = createErrorResponse(request, "4000453", "Validation failed");
+    ResponseEntity<ResponsePayload<?>> handleConstraintViolationException(ConstraintViolationException exception) {
+        var response = createErrorResponse("4000453", "Validation failed");
         var errors = exception.getConstraintViolations().stream()
                 .map(v -> {
                     var info = new ResponsePayload.ErrorInfo();
@@ -117,7 +114,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    ResponseEntity<ResponsePayload<?>> handleHttpMessageNotReadable(HttpMessageNotReadableException exception, HttpServletRequest request) {
+    ResponseEntity<ResponsePayload<?>> handleHttpMessageNotReadable(HttpMessageNotReadableException exception) {
         var description = Objects.toString(exception.getMessage(), "Malformed JSON");
         var errorCode = "json";
         if (exception.getCause() instanceof UnrecognizedPropertyException cause) {
@@ -127,7 +124,7 @@ public class GlobalExceptionHandler {
             errorCode = cause.getPropertyName();
         }
 
-        var response = createErrorResponse(request, "4000453", "Validation failed");
+        var response = createErrorResponse("4000453", "Validation failed");
         var error = new ResponsePayload.ErrorInfo();
         error.setErrorCode(errorCode);
         error.setErrorDescription(description);
@@ -136,8 +133,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
-    ResponseEntity<ResponsePayload<?>> handleMultipartExceptions(Exception exception, HttpServletRequest request) {
-        var response = createErrorResponse(request, "4000453", "Validation failed");
+    ResponseEntity<ResponsePayload<?>> handleMultipartExceptions(Exception exception) {
+        var response = createErrorResponse("4000453", "Validation failed");
         var error = new ResponsePayload.ErrorInfo();
         error.setErrorDescription(Objects.toString(exception.getMessage(), "Invalid multipart request"));
         error.setErrorCode("multipart");
@@ -149,10 +146,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    private ResponsePayload<?> createErrorResponse(
-            HttpServletRequest request,
-            String messageCode,
-            String messageDescription) {
+    private ResponsePayload<?> createErrorResponse(String messageCode, String messageDescription) {
         var response = new ResponsePayload<>();
         var requestContext = KCBRequestContextHolder.getContext();
         response.setConversationID(requestContext.conversationID());
