@@ -10,10 +10,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableConfigurationProperties(HeaderValidationProperties.class)
 class HeaderValidationConfiguration implements WebMvcConfigurer {
-    private final HeaderValidationInterceptor headerValidationInterceptor;
+    private final HeaderValidationProperties properties;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(headerValidationInterceptor);
+        registry.addInterceptor(new HeaderValidationInterceptor(properties));
     }
 }

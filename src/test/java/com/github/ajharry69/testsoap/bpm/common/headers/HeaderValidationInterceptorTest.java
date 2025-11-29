@@ -36,7 +36,7 @@ class HeaderValidationInterceptorTest {
     @Test
     void whenNoProperties_thenPreHandlePasses() {
         var props = new HeaderValidationProperties();
-        var interceptor = new HeaderValidationInterceptor(props, new HeaderValidatorService());
+        var interceptor = new HeaderValidationInterceptor(props);
 
         var request = getMockHttpServletRequest();
 
@@ -51,7 +51,7 @@ class HeaderValidationInterceptorTest {
                 .build();
         var props = new HeaderValidationProperties();
         props.setHeaders(Set.of(rule));
-        var interceptor = new HeaderValidationInterceptor(props, new HeaderValidatorService());
+        var interceptor = new HeaderValidationInterceptor(props);
 
         var request = getMockHttpServletRequest();
         request.addHeader("X-Custom", "OK");
@@ -67,7 +67,7 @@ class HeaderValidationInterceptorTest {
 
         var props = new HeaderValidationProperties();
         props.setHeaders(new HashSet<>(Set.of(required, invalid)));
-        var interceptor = new HeaderValidationInterceptor(props, new HeaderValidatorService());
+        var interceptor = new HeaderValidationInterceptor(props);
 
         var request = getMockHttpServletRequest();
         request.addHeader("X-Invalid", "bad");
