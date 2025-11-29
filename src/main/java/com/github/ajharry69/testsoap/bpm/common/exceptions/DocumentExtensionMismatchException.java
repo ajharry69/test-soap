@@ -8,6 +8,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class DocumentExtensionMismatchException extends ResponseStatusException {
     private final String documentExtension;
     private final String fileExtension;
+
     public DocumentExtensionMismatchException(String documentExtension, String fileExtension) {
         super(HttpStatus.BAD_REQUEST);
         this.documentExtension = documentExtension;

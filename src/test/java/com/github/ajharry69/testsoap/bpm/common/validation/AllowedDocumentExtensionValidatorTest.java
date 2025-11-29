@@ -13,64 +13,10 @@ import org.mockito.ArgumentCaptor;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
 
 class AllowedDocumentExtensionValidatorTest {
-
-    @Nested
-    class NonEmptyProps {
-        private AllowedDocumentExtensionValidator validator;
-
-        @BeforeEach
-        void setUp() {
-            var properties = mock(ApplicationProperties.class);
-            when(properties.getAllowedExtensions())
-                    .thenReturn("pdf, jpg , PnG");
-            validator = new AllowedDocumentExtensionValidator(properties);
-        }
-
-        @ParameterizedTest
-        @MethodSource
-        void shouldFlagAsValid(String value) {
-            assertTrue(validator.isValid(value, null));
-        }
-
-        static Stream<String> shouldFlagAsValid() {
-            return Stream.of(null, "", "   ", "pdf", ".Pdf", " JPG ", "png");
-        }
-
-        @ParameterizedTest
-        @MethodSource
-        void shouldFlagAsInvalid(String value) {
-            var context = mock(ConstraintValidatorContext.class);
-            var node = mock(ConstraintViolationBuilder.class);
-            when(context.buildConstraintViolationWithTemplate(anyString()))
-                    .thenReturn(node);
-            when(node.addConstraintViolation())
-                    .thenReturn(context);
-            var templateCaptor = ArgumentCaptor.forClass(String.class);
-
-            var valid = validator.isValid(value, context);
-
-            assertFalse(valid);
-            verify(context)
-                    .disableDefaultConstraintViolation();
-            verify(context)
-                    .buildConstraintViolationWithTemplate(templateCaptor.capture());
-            var template = templateCaptor.getValue();
-            assertTrue(template.startsWith("Invalid extension '%s'. Allowed extensions are: [".formatted(value)));
-            assertTrue(template.contains("pdf"));
-            assertTrue(template.contains("jpg"));
-            assertTrue(template.contains("png"));
-        }
-
-        static Stream<String> shouldFlagAsInvalid() {
-            return Stream.of("exe", ".", "docx");
-        }
-    }
 
     @Test
     void whenAllowedListEmpty_thenNonBlankValuesAreInvalid() {
@@ -99,5 +45,57 @@ class AllowedDocumentExtensionValidatorTest {
                 },
                 () -> assertTrue(validator.isValid(" ", null))
         );
+    }
+
+    @Nested
+    class NonEmptyProps {
+        private AllowedDocumentExtensionValidator validator;
+
+        static Stream<String> shouldFlagAsValid() {
+            return Stream.of(null, "", "   ", "pdf", ".Pdf", " JPG ", "png");
+        }
+
+        static Stream<String> shouldFlagAsInvalid() {
+            return Stream.of("exe", ".", "docx");
+        }
+
+        @BeforeEach
+        void setUp() {
+            var properties = mock(ApplicationProperties.class);
+            when(properties.getAllowedExtensions())
+                    .thenReturn("pdf, jpg , PnG");
+            validator = new AllowedDocumentExtensionValidator(properties);
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void shouldFlagAsValid(String value) {
+            assertTrue(validator.isValid(value, null));
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void shouldFlagAsInvalid(String value) {
+            var context = mock(ConstraintValidatorContext.class);
+            var node = mock(ConstraintViolationBuilder.class);
+            when(context.buildConstraintViolationWithTemplate(anyString()))
+                    .thenReturn(node);
+            when(node.addConstraintViolation())
+                    .thenReturn(context);
+            var templateCaptor = ArgumentCaptor.forClass(String.class);
+
+            var valid = validator.isValid(value, context);
+
+            assertFalse(valid);
+            verify(context)
+                    .disableDefaultConstraintViolation();
+            verify(context)
+                    .buildConstraintViolationWithTemplate(templateCaptor.capture());
+            var template = templateCaptor.getValue();
+            assertTrue(template.startsWith("Invalid extension '%s'. Allowed extensions are: [".formatted(value)));
+            assertTrue(template.contains("pdf"));
+            assertTrue(template.contains("jpg"));
+            assertTrue(template.contains("png"));
+        }
     }
 }

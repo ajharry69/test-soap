@@ -9,6 +9,24 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HeaderRuleTest {
+    static Stream<Pair<String, Boolean>> shouldValidateRequired() {
+        return Stream.of(
+                Pair.of("", false),
+                Pair.of(" ", false),
+                Pair.of("e", true),
+                Pair.of(" e ", true)
+        );
+    }
+
+    static Stream<Pair<String, Boolean>> shouldValidateOptional() {
+        return Stream.of(
+                Pair.of("", false),
+                Pair.of(" ", false),
+                Pair.of("e", true),
+                Pair.of(" e ", true)
+        );
+    }
+
     @ParameterizedTest
     @MethodSource
     void shouldValidateRequired(Pair<String, Boolean> testCase) {
@@ -17,15 +35,6 @@ class HeaderRuleTest {
         var actual = rule.isValid(testCase.getFirst());
 
         assertEquals(testCase.getSecond(), actual);
-    }
-
-    static Stream<Pair<String, Boolean>> shouldValidateRequired() {
-        return Stream.of(
-                Pair.of("", false),
-                Pair.of(" ", false),
-                Pair.of("e", true),
-                Pair.of(" e ", true)
-        );
     }
 
     @ParameterizedTest
@@ -37,14 +46,5 @@ class HeaderRuleTest {
         var actual = rule.isValid(testCase.getFirst());
 
         assertEquals(testCase.getSecond(), actual);
-    }
-
-    static Stream<Pair<String, Boolean>> shouldValidateOptional() {
-        return Stream.of(
-                Pair.of("", false),
-                Pair.of(" ", false),
-                Pair.of("e", true),
-                Pair.of(" e ", true)
-        );
     }
 }

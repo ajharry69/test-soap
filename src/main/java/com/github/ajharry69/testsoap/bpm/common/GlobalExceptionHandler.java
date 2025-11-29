@@ -2,12 +2,11 @@ package com.github.ajharry69.testsoap.bpm.common;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
-import com.github.ajharry69.testsoap.bpm.dto.ResponsePayload;
 import com.github.ajharry69.testsoap.bpm.common.exceptions.DocumentExtensionMismatchException;
-import com.github.ajharry69.testsoap.bpm.common.headers.RequestMessageIdRetriever;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeadersValidationException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
+import com.github.ajharry69.testsoap.bpm.dto.ResponsePayload;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +30,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class GlobalExceptionHandler {
-    private final RequestMessageIdRetriever requestMessageIdRetriever;
-
     @ExceptionHandler(DocumentExtensionMismatchException.class)
     ResponseEntity<ResponsePayload<?>> handleDocumentExtensionMismatchException(DocumentExtensionMismatchException exception, HttpServletRequest request) {
         var response = createErrorResponse(
@@ -157,8 +154,9 @@ public class GlobalExceptionHandler {
             String messageCode,
             String messageDescription) {
         var response = new ResponsePayload<>();
-        response.setMessageID(requestMessageIdRetriever.retrieveMessageID(request));
-        response.setConversationID(KCBRequestContextHolder.getContext().conversationID());
+        var requestContext = KCBRequestContextHolder.getContext();
+        response.setConversationID(requestContext.conversationID());
+        response.setMessageID(requestContext.messageID());
         response.setMessageCode(messageCode);
         response.setMessageDescription(messageDescription);
         response.setStatusCode(String.valueOf(TransactionStatus.FAILURE.ordinal()));

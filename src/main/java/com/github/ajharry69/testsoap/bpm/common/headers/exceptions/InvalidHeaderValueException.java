@@ -6,6 +6,7 @@ import lombok.Getter;
 @Getter
 public class InvalidHeaderValueException extends HeaderException {
     private final String headerValue;
+
     public InvalidHeaderValueException(HeaderRule rule, String headerValue) {
         super(rule);
         this.headerValue = headerValue;

@@ -2,13 +2,14 @@ package com.github.ajharry69.testsoap.bpm.common;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class KCBRequestContextHolderTest {
 
     @Test
     void setGetAndClearBehavior() {
-        assertNull( KCBRequestContextHolder.getContext());
+        assertNull(KCBRequestContextHolder.getContext());
 
         var ctx = new KCBRequestContext("conv-123");
         KCBRequestContextHolder.setContext(ctx);

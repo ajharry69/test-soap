@@ -1,21 +1,27 @@
 package com.github.ajharry69.testsoap.bpm.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.ajharry69.testsoap.bpm.common.KCBRequestContext;
+import com.github.ajharry69.testsoap.bpm.common.KCBRequestContextHolder;
 import com.github.ajharry69.testsoap.bpm.dto.RequestPayload;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.UUID;
 
 @Configuration
 @AllArgsConstructor
-public class MultipartPayloadConverterConfig implements WebMvcConfigurer {
+public class RequestPayloadConverterConfiguration implements WebMvcConfigurer {
     private final ObjectMapper objectMapper;
 
     @Override
@@ -26,6 +32,21 @@ public class MultipartPayloadConverterConfig implements WebMvcConfigurer {
     static class RequestPayloadJacksonConverter extends MappingJackson2HttpMessageConverter {
         RequestPayloadJacksonConverter(ObjectMapper mapper) {
             super(mapper);
+        }
+
+        @Override
+        public Object read(Type type, Class<?> contextClass, HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException {
+            Object payload = super.read(type, contextClass, inputMessage);
+            if (payload instanceof RequestPayload<?> requestPayload) {
+                var requestContext = KCBRequestContextHolder.getContext();
+                if (requestContext == null) {
+                    requestContext = new KCBRequestContext(UUID.randomUUID().toString(), requestPayload.getMessageID());
+                } else {
+                    requestContext = new KCBRequestContext(requestContext.conversationID(), requestPayload.getMessageID());
+                }
+                KCBRequestContextHolder.setContext(requestContext);
+            }
+            return payload;
         }
 
         @Override

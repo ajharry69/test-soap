@@ -9,7 +9,7 @@ import lombok.Data;
 @XmlRootElement(name = "NGOAddDocumentResponseBDO")
 @XmlAccessorType(XmlAccessType.FIELD)
 @Data
-public class AddDocumentResponse{
+public class AddDocumentResponse {
     @XmlElement(name = "message")
     private String message;
 

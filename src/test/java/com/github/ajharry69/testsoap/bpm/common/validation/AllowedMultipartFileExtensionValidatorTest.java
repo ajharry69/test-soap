@@ -15,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -49,20 +48,6 @@ class AllowedMultipartFileExtensionValidatorTest {
     class NonEmptyProps {
         private AllowedMultipartFileExtensionValidator validator;
 
-        @BeforeEach
-        void setUp() {
-            var properties = mock(ApplicationProperties.class);
-            when(properties.getAllowedExtensions())
-                    .thenReturn("pdf, jpg , PnG");
-            validator = new AllowedMultipartFileExtensionValidator(properties);
-        }
-
-        @ParameterizedTest
-        @MethodSource
-        void shouldFlagAsValid(MultipartFile file) {
-            assertTrue(validator.isValid(file, null));
-        }
-
         static Stream<MultipartFile> shouldFlagAsValid() {
             var nullFileName = mock(MultipartFile.class);
             when(nullFileName.isEmpty()).thenReturn(false);
@@ -76,6 +61,27 @@ class AllowedMultipartFileExtensionValidatorTest {
                     new MockMultipartFile("file", "name.PDF", "application/pdf", new byte[]{1}),
                     new MockMultipartFile("file", "name. PnG ", "application/octet-stream", new byte[]{1})
             );
+        }
+
+        static Stream<MultipartFile> shouldFlagAsInvalid() {
+            return Stream.of(
+                    new MockMultipartFile("file", "name", "application/octet-stream", new byte[]{1}),
+                    new MockMultipartFile("file", "name.exe", "application/octet-stream", new byte[]{1})
+            );
+        }
+
+        @BeforeEach
+        void setUp() {
+            var properties = mock(ApplicationProperties.class);
+            when(properties.getAllowedExtensions())
+                    .thenReturn("pdf, jpg , PnG");
+            validator = new AllowedMultipartFileExtensionValidator(properties);
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void shouldFlagAsValid(MultipartFile file) {
+            assertTrue(validator.isValid(file, null));
         }
 
         @ParameterizedTest
@@ -97,13 +103,6 @@ class AllowedMultipartFileExtensionValidatorTest {
             verify(context)
                     .buildConstraintViolationWithTemplate(templateCaptor.capture());
 
-        }
-
-        static Stream<MultipartFile> shouldFlagAsInvalid() {
-            return Stream.of(
-                    new MockMultipartFile("file", "name", "application/octet-stream", new byte[]{1}),
-                    new MockMultipartFile("file", "name.exe", "application/octet-stream", new byte[]{1})
-            );
         }
     }
 }

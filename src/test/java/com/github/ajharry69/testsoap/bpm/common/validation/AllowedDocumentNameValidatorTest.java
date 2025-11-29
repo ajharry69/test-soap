@@ -20,6 +20,10 @@ class AllowedDocumentNameValidatorTest {
     private DocumentTypeRepository repository;
     private AllowedDocumentNameValidator validator;
 
+    static Stream<String> shouldFlagBlankOrNullInputAsValid() {
+        return Stream.of(null, "", "   ");
+    }
+
     @BeforeEach
     void setUp() {
         repository = mock(DocumentTypeRepository.class);
@@ -34,10 +38,6 @@ class AllowedDocumentNameValidatorTest {
         assertTrue(valid);
         verify(repository, never())
                 .existsByDocumentNameAndActiveTrue(anyString());
-    }
-
-    static Stream<String> shouldFlagBlankOrNullInputAsValid() {
-        return Stream.of(null, "", "   ");
     }
 
     @Test

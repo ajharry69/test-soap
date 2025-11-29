@@ -9,14 +9,14 @@ public final class KCBRequestContextHolder {
     private KCBRequestContextHolder() {
     }
 
-    public static void setContext(KCBRequestContext context) {
-        log.info("Setting request context: {}", context);
-        CONTEXT.set(context);
-    }
-
     public static KCBRequestContext getContext() {
         log.info("Getting request context...");
         return CONTEXT.get();
+    }
+
+    public static void setContext(KCBRequestContext context) {
+        log.info("Setting request context: {}", context);
+        CONTEXT.set(context);
     }
 
     public static void clear() {

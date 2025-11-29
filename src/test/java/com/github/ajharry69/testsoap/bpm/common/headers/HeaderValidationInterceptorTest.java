@@ -14,6 +14,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class HeaderValidationInterceptorTest {
 
+    private static MockHttpServletRequest getMockHttpServletRequest() {
+        var request = new MockHttpServletRequest();
+        request.addHeader("X-FeatureCode", "101");
+        request.addHeader("X-FeatureName", "BPM");
+        request.addHeader("X-ServiceCode", "10001");
+        request.addHeader("X-ServiceName", "ke-kcb-salesforce-bpm-st-v1.0.0");
+        request.addHeader("X-ChannelCode", "10");
+        request.addHeader("X-ChannelCategory", "102");
+        request.addHeader("X-ChannelName", "App");
+        request.addHeader("X-RouteCode", "SFA");
+        request.addHeader("X-TimeStamp", "1750844604");
+        request.addHeader("X-ServiceMode", "NA");
+        request.addHeader("X-SubscriberEvents", "NA");
+        request.addHeader("X-CallBackURL", "https://example.com/callback");
+        request.addHeader("X-ServiceSubCategory", "upload-document");
+        request.addHeader("X-MinorServiceVersion", "1.0");
+        return request;
+    }
+
     @Test
     void whenNoProperties_thenPreHandlePasses() {
         var props = new HeaderValidationProperties();
@@ -63,24 +82,5 @@ class HeaderValidationInterceptorTest {
                 () -> assertTrue(ex.getHeaderExceptions().stream().anyMatch(e -> e instanceof InvalidHeaderValueException &&
                         e.getRule().getHeaderName().equals("X-Invalid")))
         );
-    }
-
-    private static MockHttpServletRequest getMockHttpServletRequest() {
-        var request = new MockHttpServletRequest();
-        request.addHeader("X-FeatureCode", "101");
-        request.addHeader("X-FeatureName", "BPM");
-        request.addHeader("X-ServiceCode", "10001");
-        request.addHeader("X-ServiceName", "ke-kcb-salesforce-bpm-st-v1.0.0");
-        request.addHeader("X-ChannelCode", "10");
-        request.addHeader("X-ChannelCategory", "102");
-        request.addHeader("X-ChannelName", "App");
-        request.addHeader("X-RouteCode", "SFA");
-        request.addHeader("X-TimeStamp", "1750844604");
-        request.addHeader("X-ServiceMode", "NA");
-        request.addHeader("X-SubscriberEvents", "NA");
-        request.addHeader("X-CallBackURL", "https://example.com/callback");
-        request.addHeader("X-ServiceSubCategory", "upload-document");
-        request.addHeader("X-MinorServiceVersion", "1.0");
-        return request;
     }
 }
