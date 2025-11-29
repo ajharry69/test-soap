@@ -1,12 +1,15 @@
 package com.github.ajharry69.testsoap.bpm.common.headers.validators;
 
 import jakarta.validation.constraints.NotNull;
+import org.springframework.util.StringUtils;
 
 import java.util.Date;
 import java.util.regex.Pattern;
 
 @FunctionalInterface
 public interface HeaderValidator {
+    HeaderValidator DEFAULT = (headerName, headerValue) -> StringUtils.hasText(headerValue);
+
     boolean isValid(String headerName, String headerValue);
 
     final class EpochTimestamp implements HeaderValidator {
