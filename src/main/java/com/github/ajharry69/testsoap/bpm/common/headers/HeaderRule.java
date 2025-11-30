@@ -1,6 +1,7 @@
 package com.github.ajharry69.testsoap.bpm.common.headers;
 
 import com.github.ajharry69.testsoap.bpm.common.headers.validators.HeaderValidator;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.ValidationResult;
 import lombok.*;
 
 import java.util.Locale;
@@ -18,8 +19,8 @@ public class HeaderRule {
     @Builder.Default
     private HeaderValidator validator = HeaderValidator.DEFAULT;
 
-    public boolean isValid(String headerValue) {
-        return validator.isValid(headerName, headerValue);
+    public ValidationResult validate(String headerValue) {
+        return validator.validate(headerName, headerValue);
     }
 
     private String getCaseInsensitiveHeaderName() {

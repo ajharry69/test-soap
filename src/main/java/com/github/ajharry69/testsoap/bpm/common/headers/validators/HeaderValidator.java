@@ -4,7 +4,13 @@ import org.springframework.util.StringUtils;
 
 @FunctionalInterface
 public interface HeaderValidator {
-    HeaderValidator DEFAULT = (headerName, headerValue) -> StringUtils.hasText(headerValue);
+    HeaderValidator DEFAULT = (headerName, headerValue) -> {
+        if (StringUtils.hasText(headerValue)) {
+            return new ValidationResult.Success();
+        } else {
+            return new ValidationResult.Failure("Header value is required");
+        }
+    };
 
-    boolean isValid(String headerName, String headerValue);
+    ValidationResult validate(String headerName, String headerValue);
 }

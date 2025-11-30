@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.github.ajharry69.testsoap.bpm.common.exceptions.DocumentExtensionMismatchException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeadersValidationException;
-import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
-import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
 import com.github.ajharry69.testsoap.bpm.dto.ResponsePayload;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
@@ -57,14 +55,8 @@ public class GlobalExceptionHandler {
         var errors = exception.getHeaderExceptions()
                 .stream()
                 .map(e -> {
-                    var errorMessage = e.getMessage();
-                    if (e instanceof MissingHeaderException) {
-                        errorMessage = "Missing required header";
-                    } else if (e instanceof InvalidHeaderValueException error) {
-                        errorMessage = "Invalid header value '%s'".formatted(error.getHeaderValue());
-                    }
                     var errorInfo = new ResponsePayload.ErrorInfo();
-                    errorInfo.setErrorDescription(errorMessage);
+                    errorInfo.setErrorDescription(e.getFailure().errorMessage());
                     errorInfo.setErrorCode(e.getRule().getHeaderName());
                     return errorInfo;
                 })

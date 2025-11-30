@@ -5,17 +5,17 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class EpochTimestampValidatorTest {
     static Stream<TestCase> timestampProvider() {
         return Stream.of(
-                new TestCase("", false),
-                new TestCase("1nvalid", false),
-                new TestCase("1", true),
-                new TestCase(String.valueOf(Long.MIN_VALUE), true),
-                new TestCase(String.valueOf(Long.MAX_VALUE), true),
-                new TestCase(String.valueOf(System.currentTimeMillis()), true)
+                new TestCase("", ValidationResult.Failure.class),
+                new TestCase("1nvalid", ValidationResult.Failure.class),
+                new TestCase("1", ValidationResult.Success.class),
+                new TestCase(String.valueOf(Long.MIN_VALUE), ValidationResult.Success.class),
+                new TestCase(String.valueOf(Long.MAX_VALUE), ValidationResult.Success.class),
+                new TestCase(String.valueOf(System.currentTimeMillis()), ValidationResult.Success.class)
         );
     }
 
@@ -24,11 +24,11 @@ class EpochTimestampValidatorTest {
     void shouldValidate(TestCase timestamp) {
         var validator = new EpochTimestampValidator();
 
-        var actual = validator.isValid(null, timestamp.headerValue());
+        var actual = validator.validate(null, timestamp.headerValue());
 
-        assertEquals(timestamp.expected(), actual);
+        assertInstanceOf(timestamp.expected(), actual);
     }
 
-    record TestCase(String headerValue, boolean expected) {
+    record TestCase(String headerValue, Class<? extends ValidationResult> expected) {
     }
 }

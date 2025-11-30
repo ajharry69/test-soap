@@ -59,8 +59,8 @@ class HeaderValidatorConverterTest {
         }
 
         @Override
-        public boolean isValid(String headerName, String headerValue) {
-            return true;
+        public ValidationResult validate(String headerName, String headerValue) {
+            return new ValidationResult.Success();
         }
     }
 
@@ -70,8 +70,8 @@ class HeaderValidatorConverterTest {
         }
 
         @Override
-        public boolean isValid(String headerName, String headerValue) {
-            return true;
+        public ValidationResult validate(String headerName, String headerValue) {
+            return new ValidationResult.Success();
         }
     }
 
@@ -83,8 +83,8 @@ class HeaderValidatorConverterTest {
         }
 
         @Override
-        public boolean isValid(String headerName, String headerValue) {
-            return true;
+        public ValidationResult validate(String headerName, String headerValue) {
+            return new ValidationResult.Success();
         }
     }
 

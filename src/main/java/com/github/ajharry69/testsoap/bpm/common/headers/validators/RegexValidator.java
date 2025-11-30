@@ -10,7 +10,9 @@ public record RegexValidator(@NotNull Pattern pattern) implements HeaderValidato
     }
 
     @Override
-    public boolean isValid(String headerName, String headerValue) {
-        return pattern.matcher(headerValue.trim()).matches();
+    public ValidationResult validate(String headerName, String headerValue) {
+        return pattern.matcher(headerValue).matches()
+                ? new ValidationResult.Success()
+                : new ValidationResult.Failure("Header value '%s' does not match pattern '%s'".formatted(headerValue, pattern.pattern()));
     }
 }

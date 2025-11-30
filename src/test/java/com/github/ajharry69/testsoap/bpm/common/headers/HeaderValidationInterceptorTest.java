@@ -4,6 +4,7 @@ import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeadersValida
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
 import com.github.ajharry69.testsoap.bpm.common.headers.validators.RegexValidator;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.ValidationResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -47,7 +48,9 @@ class HeaderValidationInterceptorTest {
     void whenValidHeaders_thenPreHandleReturnsTrue() {
         var rule = HeaderRule.builder()
                 .headerName("X-Custom")
-                .validator((n, v) -> v.equals("OK"))
+                .validator((n, v) -> v.equals("OK")
+                        ? new ValidationResult.Success()
+                        : new ValidationResult.Failure("Invalid value"))
                 .build();
         var props = new HeaderValidationProperties();
         props.setHeaders(Set.of(rule));

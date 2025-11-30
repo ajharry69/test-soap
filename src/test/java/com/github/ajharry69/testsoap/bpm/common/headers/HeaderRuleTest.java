@@ -1,5 +1,6 @@
 package com.github.ajharry69.testsoap.bpm.common.headers;
 
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.ValidationResult;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -7,25 +8,26 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class HeaderRuleTest {
     @Nested
     class isValid {
         static Stream<TestCase> shouldValidateRequired() {
             return Stream.of(
-                    new TestCase("", false),
-                    new TestCase(" ", false),
-                    new TestCase("e", true),
-                    new TestCase(" e ", true)
+                    new TestCase("", ValidationResult.Failure.class),
+                    new TestCase(" ", ValidationResult.Failure.class),
+                    new TestCase("e", ValidationResult.Success.class),
+                    new TestCase(" e ", ValidationResult.Success.class)
             );
         }
 
         static Stream<TestCase> shouldValidateOptional() {
             return Stream.of(
-                    new TestCase("", false),
-                    new TestCase(" ", false),
-                    new TestCase("e", true),
-                    new TestCase(" e ", true)
+                    new TestCase("", ValidationResult.Failure.class),
+                    new TestCase(" ", ValidationResult.Failure.class),
+                    new TestCase("e", ValidationResult.Success.class),
+                    new TestCase(" e ", ValidationResult.Success.class)
             );
         }
 
@@ -34,9 +36,9 @@ class HeaderRuleTest {
         void shouldValidateRequired(TestCase testCase) {
             var rule = new HeaderRule();
 
-            var actual = rule.isValid(testCase.headerValue());
+            var actual = rule.validate(testCase.headerValue());
 
-            assertEquals(testCase.expected(), actual);
+            assertInstanceOf(testCase.expected(), actual);
         }
 
         @ParameterizedTest
@@ -46,12 +48,12 @@ class HeaderRuleTest {
                     .required(false)
                     .build();
 
-            var actual = rule.isValid(testCase.headerValue());
+            var actual = rule.validate(testCase.headerValue());
 
-            assertEquals(testCase.expected(), actual);
+            assertInstanceOf(testCase.expected(), actual);
         }
 
-        record TestCase(String headerValue, boolean expected) {
+        record TestCase(String headerValue, Class<? extends ValidationResult> expected) {
         }
     }
 
@@ -128,12 +130,12 @@ class HeaderRuleTest {
                             HeaderRule.builder()
                                     .headerName("X-Featurecode")
                                     .required(true)
-                                    .validator((headerName, headerValue) -> true)
+                                    .validator((headerName, headerValue) -> new ValidationResult.Success())
                                     .build(),
                             HeaderRule.builder()
                                     .headerName("X-FeatureCode")
                                     .required(false)
-                                    .validator((headerName, headerValue) -> false)
+                                    .validator((headerName, headerValue) -> new ValidationResult.Failure("Failure"))
                                     .build(),
                             true
                     ),
@@ -141,12 +143,12 @@ class HeaderRuleTest {
                             HeaderRule.builder()
                                     .headerName("X-Featurecode")
                                     .required(true)
-                                    .validator((headerName, headerValue) -> true)
+                                    .validator((headerName, headerValue) -> new ValidationResult.Success())
                                     .build(),
                             HeaderRule.builder()
                                     .headerName("X-FeatureCode1")
                                     .required(false)
-                                    .validator((headerName, headerValue) -> false)
+                                    .validator((headerName, headerValue) -> new ValidationResult.Failure("Failure"))
                                     .build(),
                             false
                     ),
@@ -154,12 +156,12 @@ class HeaderRuleTest {
                             HeaderRule.builder()
                                     .headerName(" X-Featurecode")
                                     .required(true)
-                                    .validator((headerName, headerValue) -> true)
+                                    .validator((headerName, headerValue) -> new ValidationResult.Success())
                                     .build(),
                             HeaderRule.builder()
                                     .headerName("X-FeatureCode  ")
                                     .required(false)
-                                    .validator((headerName, headerValue) -> false)
+                                    .validator((headerName, headerValue) -> new ValidationResult.Failure("Failure"))
                                     .build(),
                             true
                     )

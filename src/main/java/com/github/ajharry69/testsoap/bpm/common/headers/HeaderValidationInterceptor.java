@@ -4,6 +4,7 @@ import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeaderExcepti
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeadersValidationException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.ValidationResult;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.util.StringUtils;
@@ -33,8 +34,13 @@ record HeaderValidationInterceptor(HeaderValidationProperties properties) implem
             throw new MissingHeaderException(rule);
         }
 
-        if (!rule.isValid(headerValue)) {
-            throw new InvalidHeaderValueException(rule, headerValue);
+        switch (rule.validate(headerValue)) {
+            case ValidationResult.Success ignored -> {
+            }
+            case ValidationResult.Failure failure -> throw new InvalidHeaderValueException(
+                    rule,
+                    failure
+            );
         }
     }
 }

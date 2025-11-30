@@ -5,21 +5,21 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class RegexValidatorTest {
     static Stream<TestCase> regexProvider() {
         return Stream.of(
-                new TestCase("", false),
-                new TestCase("1nvalid", false),
-                new TestCase("v", false),
-                new TestCase("v1", true),
-                new TestCase("v1.", false),
-                new TestCase("v1.12", true),
-                new TestCase("v1.123.3", true),
-                new TestCase("1.123.3", false),
-                new TestCase("v1.123.3-alpha01", false),
-                new TestCase("1.123.3-alpha01", false)
+                new TestCase("", ValidationResult.Failure.class),
+                new TestCase("1nvalid", ValidationResult.Failure.class),
+                new TestCase("v", ValidationResult.Failure.class),
+                new TestCase("v1", ValidationResult.Success.class),
+                new TestCase("v1.", ValidationResult.Failure.class),
+                new TestCase("v1.12", ValidationResult.Success.class),
+                new TestCase("v1.123.3", ValidationResult.Success.class),
+                new TestCase("1.123.3", ValidationResult.Failure.class),
+                new TestCase("v1.123.3-alpha01", ValidationResult.Failure.class),
+                new TestCase("1.123.3-alpha01", ValidationResult.Failure.class)
         );
     }
 
@@ -28,11 +28,11 @@ class RegexValidatorTest {
     void shouldValidate(TestCase testCase) {
         var validator = new RegexValidator("v\\d+(.\\d+){0,2}");
 
-        var actual = validator.isValid(null, testCase.headerValue());
+        var actual = validator.validate(null, testCase.headerValue());
 
-        assertEquals(testCase.expected(), actual);
+        assertInstanceOf(testCase.expected(), actual);
     }
 
-    record TestCase(String headerValue, boolean expected) {
+    record TestCase(String headerValue, Class<? extends ValidationResult> expected) {
     }
 }

@@ -4,12 +4,12 @@ import java.util.Date;
 
 public final class EpochTimestampValidator implements HeaderValidator {
     @Override
-    public boolean isValid(String headerName, String headerValue) {
+    public ValidationResult validate(String headerName, String headerValue) {
         try {
             new Date(Long.parseLong(headerValue));
-            return true;
+            return new ValidationResult.Success();
         } catch (NumberFormatException e) {
-            return false;
+            return new ValidationResult.Failure("Header value is not a valid epoch timestamp");
         }
     }
 }

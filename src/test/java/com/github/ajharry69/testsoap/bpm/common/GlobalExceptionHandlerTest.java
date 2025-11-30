@@ -7,6 +7,8 @@ import com.github.ajharry69.testsoap.bpm.common.headers.HeaderRule;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.HeadersValidationException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.InvalidHeaderValueException;
 import com.github.ajharry69.testsoap.bpm.common.headers.exceptions.MissingHeaderException;
+import com.github.ajharry69.testsoap.bpm.common.headers.validators.ValidationResult;
+import com.github.ajharry69.testsoap.bpm.dto.ResponsePayload;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
@@ -102,7 +104,7 @@ class GlobalExceptionHandlerTest {
 
             var ex = new HeadersValidationException();
             ex.addHeaderException(new MissingHeaderException(missingRule));
-            ex.addHeaderException(new InvalidHeaderValueException(invalidRule, "v1.alpha"));
+            ex.addHeaderException(new InvalidHeaderValueException(invalidRule, new ValidationResult.Failure("Invalid value")));
             var handler = new GlobalExceptionHandler();
 
             var actual = handler.handleHeadersValidationException(ex);
@@ -118,9 +120,13 @@ class GlobalExceptionHandlerTest {
                     () -> assertTrue(body.getErrorInfo().stream().anyMatch(e ->
                             e.getErrorCode().equals("X-FeatureName") &&
                                     e.getErrorDescription().equals("Missing required header"))),
-                    () -> assertTrue(body.getErrorInfo().stream().anyMatch(e ->
-                            e.getErrorCode().equals("X-MinorServiceVersion") &&
-                                    e.getErrorDescription().contains("Invalid header value 'v1.alpha'")))
+                    () -> assertLinesMatch(
+                            Stream.of("Invalid value"),
+                            body.getErrorInfo()
+                                    .stream()
+                                    .filter(e -> e.getErrorCode().equals("X-MinorServiceVersion"))
+                                    .map(ResponsePayload.ErrorInfo::getErrorDescription)
+                    )
 
             );
         }
